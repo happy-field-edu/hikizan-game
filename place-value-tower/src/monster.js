@@ -15,7 +15,7 @@ const MEGA_FACTOR = 1.35;
 
 // 吹き出し・ゲージの見た目サイズ（ワールド座標で一定に保つ）
 const BUBBLE_W = 8.06, BUBBLE_H = 4.55, BUBBLE_Y = 4.68;
-const FULLNESS_W = 5.98, FULLNESS_H = 2.03, FULLNESS_Y = -3.51;
+const FULLNESS_W = 7.4, FULLNESS_H = 3.47, FULLNESS_Y = -4.15;
 
 // ゴムのように「ボヨヨン！」と弾むイージング
 function elasticOut(k) {
@@ -110,40 +110,58 @@ function drawSay(text) {
   return new THREE.CanvasTexture(canvas);
 }
 
-// モンスターのすぐ下の「まんぷくゲージ」（いまの合計とターゲットへの近さ）
+// モンスターのすぐ下の「いまの ごうけい」＋まんぷくゲージ（大きく一目でわかる常時表示）
 function drawFullness(sum, target) {
   const canvas = document.createElement('canvas');
-  canvas.width = 560;
-  canvas.height = 190;
+  canvas.width = 640;
+  canvas.height = 300;
   const ctx = canvas.getContext('2d');
   const over = sum > target;
 
-  // いまの合計（位ごとの色分け。いれすぎは赤）
-  const text = String(sum);
-  ctx.font = 'bold 100px "Hiragino Maru Gothic ProN", sans-serif';
+  // 背景パネル（タワー越しでもくっきり読めるように）
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.strokeStyle = over ? '#ef4444' : '#fbbf24';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.roundRect(16, 8, 608, 284, 44);
+  ctx.fill();
+  ctx.stroke();
+
+  // ラベル
+  ctx.font = 'bold 46px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.lineWidth = 18;
   ctx.lineJoin = 'round';
+  ctx.lineWidth = 14;
   ctx.strokeStyle = '#ffffff';
+  ctx.strokeText('いまの ごうけい', 320, 36);
+  ctx.fillStyle = over ? '#dc2626' : '#92400e';
+  ctx.fillText('いまの ごうけい', 320, 36);
+
+  // 合計の数字（位ごとの色分け・特大。いれすぎは赤）
+  const text = String(sum);
+  ctx.font = 'bold 150px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.lineWidth = 24;
   const widths = [...text].map((ch) => ctx.measureText(ch).width);
   const total = widths.reduce((a, b) => a + b, 0);
-  let x = 280 - total / 2;
+  let x = 320 - total / 2;
   [...text].forEach((ch, i) => {
-    ctx.strokeText(ch, x, 58);
+    ctx.strokeText(ch, x, 132);
     ctx.fillStyle = over ? '#dc2626' : digitColor(text.length, i);
-    ctx.fillText(ch, x, 58);
+    ctx.fillText(ch, x, 132);
     x += widths[i];
   });
 
   // まんぷくゲージ（ターゲットに近づくほど満タン）
   ctx.fillStyle = 'rgba(255,255,255,0.9)';
   ctx.beginPath();
-  ctx.roundRect(36, 122, 488, 48, 24);
+  ctx.roundRect(40, 226, 560, 52, 26);
   ctx.fill();
   const ratio = Math.min(1, sum / target);
   if (ratio > 0 || over) {
-    const w = over ? 488 : Math.max(48, 488 * ratio);
-    const grad = ctx.createLinearGradient(36, 0, 36 + w, 0);
+    const w = over ? 560 : Math.max(52, 560 * ratio);
+    const grad = ctx.createLinearGradient(40, 0, 40 + w, 0);
     if (over) {
       grad.addColorStop(0, '#ef4444');
       grad.addColorStop(1, '#b91c1c');
@@ -153,29 +171,28 @@ function drawFullness(sum, target) {
     }
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.roundRect(42, 128, w - 12 > 0 ? w - 12 : 36, 36, 18);
+    ctx.roundRect(46, 232, w - 12 > 0 ? w - 12 : 40, 40, 20);
     ctx.fill();
   }
   // 10%ごとの目盛り
   ctx.strokeStyle = 'rgba(255,255,255,0.55)';
   ctx.lineWidth = 3;
   for (let i = 1; i < 10; i++) {
-    const tx = 36 + 48.8 * i;
+    const tx = 40 + 56 * i;
     ctx.beginPath();
-    ctx.moveTo(tx, 128);
-    ctx.lineTo(tx, 164);
+    ctx.moveTo(tx, 232);
+    ctx.lineTo(tx, 272);
     ctx.stroke();
   }
   // パーセント表示
-  ctx.font = 'bold 42px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.font = 'bold 44px "Hiragino Maru Gothic ProN", sans-serif';
   ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  ctx.lineWidth = 10;
+  ctx.lineWidth = 12;
   ctx.strokeStyle = '#ffffff';
   const pct = `${Math.min(999, Math.round((sum / target) * 100))}%`;
-  ctx.strokeText(pct, 524, 96);
+  ctx.strokeText(pct, 600, 196);
   ctx.fillStyle = over ? '#dc2626' : '#b45309';
-  ctx.fillText(pct, 524, 96);
+  ctx.fillText(pct, 600, 196);
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -257,8 +274,8 @@ export class Monster {
     this.fullness = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: drawFullness(0, 100) })
     );
-    this.fullness.scale.set(4.6, 1.56, 1);
-    this.fullness.position.y = -2.7;
+    this.fullness.scale.set(FULLNESS_W, FULLNESS_H, 1);
+    this.fullness.position.y = FULLNESS_Y;
     this.group.add(this.fullness);
   }
 

@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { createTowers } from './towers.js';
+import { createTowers, BIN_Z } from './towers.js';
 import { Effects } from './effects.js';
 import { Monster } from './monster.js';
-import { Game } from './game.js';
+import { Game, setBinsX } from './game.js';
 
 // --- シーン・カメラ・レンダラー ---
 const scene = new THREE.Scene();
@@ -36,10 +36,22 @@ sun.position.set(6, 12, 8);
 scene.add(sun);
 
 // --- タワー・エフェクト・ゲーム ---
-const { towerGroups, tick: tickPedestals } = createTowers(scene);
+const { towerGroups, bins, tick: tickPedestals } = createTowers(scene);
 const effects = new Effects(scene, towerGroups);
 const monster = new Monster(scene);
 const game = new Game(scene, effects, monster);
+
+// ゴミ箱（ブラックホール）を、いま見えている画面のいちばん端に配置する
+// （タワーから離して誤操作を防ぐ。横長画面ほど遠くへ）
+function layoutBins() {
+  const dist = cameraBase.z - BIN_Z;
+  const halfW = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist * camera.aspect;
+  const binX = Math.min(13, Math.max(8.6, halfW - 2.1));
+  bins[0].group.position.x = -binX;
+  bins[1].group.position.x = binX;
+  setBinsX(binX);
+}
+layoutBins();
 window.__game = game; // デバッグ・動作確認用
 window.__fx = effects;
 window.__monster = monster;
@@ -69,6 +81,7 @@ window.addEventListener('pointerup', () => (dragging = false));
 // --- リサイズ ---
 window.addEventListener('resize', () => {
   fitCamera();
+  layoutBins();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 

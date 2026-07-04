@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { removeBlock } from './blocks.js';
+import { BIN_Z } from './towers.js';
 
 const CONFETTI_COLORS = [0xf43f5e, 0xf59e0b, 0xfde047, 0x22c55e, 0x3b82f6, 0xa855f7, 0xffffff];
 const STAR_COLORS = [0xffd700, 0xfff59d, 0xffffff, 0x80deea, 0xf48fb1, 0xffab40];
@@ -96,7 +97,7 @@ export class Effects {
     this.shreds.push({
       mesh: block,
       from: block.position.clone(),
-      to: new THREE.Vector3(binX, 0.6, 2.5),
+      to: new THREE.Vector3(binX, 0.6, BIN_Z),
       t: 0,
       dur: 0.45,
     });

@@ -19,7 +19,7 @@ const RUSH_SPEED = 1.55;
 // 合計がターゲットに近づくほど速くなる（最大 +50%）
 const PROGRESS_SPEEDUP = 0.5;
 
-// 操作スロット: まんなか3つがタワー、両はしは「ゴミ箱（シュレッダー）」
+// 操作スロット: まんなか3つがタワー、両はしは「ゴミ箱（ブラックホール）」
 const SLOTS = [
   { x: -BIN_X, tower: null },
   { x: -5.6, tower: 0 },
@@ -27,6 +27,12 @@ const SLOTS = [
   { x: 5.6, tower: 2 },
   { x: BIN_X, tower: null },
 ];
+
+// 画面幅に合わせてゴミ箱スロットの位置を更新する（main.js が呼ぶ）
+export function setBinsX(x) {
+  SLOTS[0].x = -x;
+  SLOTS[SLOTS.length - 1].x = x;
+}
 export const SLOT_COUNT = SLOTS.length;
 
 const DISCARD_Y = 1.35; // ゴミ箱の吸い込みが始まる高さ
@@ -42,6 +48,31 @@ const FLY_TIME = 1.0;
 const LANE_OF = { 100: 0, 10: 1, 1: 2 };
 
 const ease = (k) => k * k * (3 - 2 * k);
+
+// タワーの真上に出す「その位の現在値」（例: 十の位に4本なら 40）
+function drawTowerValue(value, colorHex) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 160;
+  const ctx = canvas.getContext('2d');
+  const color = '#' + colorHex.toString(16).padStart(6, '0');
+
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.roundRect(12, 12, 296, 136, 34);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.font = 'bold 92px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.fillText(String(value), 160, 86);
+
+  return new THREE.CanvasTexture(canvas);
+}
 
 // タワー内での積み上げ位置。1の立方体は「5こずつ2列」で最大10こ入る
 function stackTransform(value, idx, laneX) {
@@ -66,7 +97,29 @@ export class Game {
     this.timer = 0.8;
     this.rushLeft = 0;          // 残りのラッシュブロック数
     this.rushType = 1;
+
+    // 各タワーの真上の「その位の現在値」表示
+    this.towerValues = LANES.map((lane) => {
+      const sprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: drawTowerValue(0, lane.color) })
+      );
+      sprite.scale.set(2.7, 1.35, 1);
+      sprite.position.set(lane.x, TOWER_HEIGHT + 1.5, 1.5);
+      scene.add(sprite);
+      return sprite;
+    });
+
     this.newProblem();
+  }
+
+  // タワー上の現在値表示を更新（例: 十の位に4本 → 40）
+  updateTowerValues() {
+    LANES.forEach((lane, i) => {
+      const sprite = this.towerValues[i];
+      sprite.material.map?.dispose();
+      sprite.material.map = drawTowerValue(this.counts[lane.value] * lane.value, lane.color);
+      sprite.material.needsUpdate = true;
+    });
   }
 
   // いまの合計（タワー内の物理ブロック数から計算。繰り上がりでも不変）
@@ -112,6 +165,7 @@ export class Game {
     this.monster.setRush(false);
     this.monster.setTarget(this.target); // ターゲットはモンスターの吹き出しに表示
     this.monster.setFullness(0, this.target);
+    this.updateTowerValues();
   }
 
   // 次に降らせるブロックの種類。まだ足りない種類が出やすいが、
@@ -286,6 +340,7 @@ export class Game {
     this.counts[v] += 1;
 
     this.monster.setFullness(this.sum, this.target);
+    this.updateTowerValues();
 
     if (this.sum > this.target) {
       this.overflow(); // 入れすぎ！
@@ -316,6 +371,7 @@ export class Game {
     setTimeout(() => {
       this.counts = { 100: 0, 10: 0, 1: 0 };
       this.monster.setFullness(0, this.target);
+      this.updateTowerValues();
       this.status = 'playing';
       this.timer = 0.9;
       ui.setMessage('もういちど ちょうせん！');
@@ -356,6 +412,7 @@ export class Game {
       if (m.t >= GATHER_TIME) {
         for (const b of m.blocks) removeBlock(this.scene, b);
         this.counts[m.v] -= 10;
+        this.updateTowerValues();
         const big = createBlock(m.v * 10);
         big.position.set(m.fromX, 2.1, 0);
         big.scale.setScalar(0.2);
@@ -402,6 +459,7 @@ export class Game {
     this.merge = null;
 
     this.monster.setFullness(this.sum, this.target);
+    this.updateTowerValues();
 
     if (v10 !== 100 && this.counts[v10] >= 10) {
       this.startMerge(v10); // 連鎖繰り上がり（十 → 百）

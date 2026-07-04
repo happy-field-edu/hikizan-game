@@ -14,7 +14,8 @@ export const LANES = [
 export const TOWER_HEIGHT = 7;
 export const TOWER_RADIUS = 2.5;
 export const SPAWN_Y = 40; // はるか上空から降ってくる
-export const BIN_X = 8.8;  // ゴミ箱（シュレッダー）の位置（±）
+export const BIN_X = 8.8;  // ゴミ箱の初期位置（±）。画面幅に応じて main.js が端へ再配置する
+export const BIN_Z = 2.5;  // ゴミ箱の奥行き位置
 
 const font = new FontLoader().parse(helvetikerBold);
 
@@ -102,54 +103,138 @@ function makeBinLabel() {
   return sprite;
 }
 
+// 中心へ渦巻くブラックホールのテクスチャ（回転アニメで吸い込み感を出す）
+function makeSwirlTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+
+  // 中心の闇 → 紫 → ネオンピンクのグラデーション
+  const grad = ctx.createRadialGradient(128, 128, 6, 128, 128, 128);
+  grad.addColorStop(0, '#000000');
+  grad.addColorStop(0.4, '#1e0a3c');
+  grad.addColorStop(0.7, '#7c3aed');
+  grad.addColorStop(0.9, '#d946ef');
+  grad.addColorStop(1, '#ff5fd0');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(128, 128, 128, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 渦の腕（明るい筋と暗い筋を3本ずつ）
+  for (let arm = 0; arm < 3; arm++) {
+    for (const [color, width, offset] of [
+      ['rgba(255,170,255,0.75)', 5, 0],
+      ['rgba(10,0,30,0.6)', 8, 0.55],
+    ]) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      for (let t = 0; t <= 1.001; t += 0.04) {
+        const r = 10 + t * 112;
+        const a = arm * ((Math.PI * 2) / 3) + offset + t * Math.PI * 2.2;
+        const px = 128 + Math.cos(a) * r;
+        const py = 128 + Math.sin(a) * r;
+        if (t === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.center.set(0.5, 0.5); // 回転アニメ用
+  return tex;
+}
+
+// ネオンのハロー（ふわっと広がる光）
+function makeGlowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(64, 64, 6, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(236,72,153,0.55)');
+  grad.addColorStop(0.5, 'rgba(124,58,237,0.3)');
+  grad.addColorStop(1, 'rgba(124,58,237,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(canvas);
+}
+
 // ブラックホール風のゴミ箱（不要ブロックを吸い込むシュレッダー）
 function createBin(x) {
   const group = new THREE.Group();
-  group.position.set(x, 0, 2.5);
+  group.position.set(x, 0, BIN_Z);
+
+  // 渦の面はプレイヤー側に傾けて、低い視点からでも吸い込み口が見えるようにする
+  const face = new THREE.Group();
+  face.rotation.x = 0.55; // 上面（渦）がカメラ側を向くように傾ける
+  face.position.y = 0.55;
+  group.add(face);
 
   // 暗い台座
   const disc = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.5, 1.7, 0.3, 32),
+    new THREE.CylinderGeometry(1.6, 1.8, 0.25, 32),
     new THREE.MeshStandardMaterial({
-      color: 0x2e1065,
+      color: 0x140322,
       roughness: 0.4,
-      emissive: 0x7c3aed,
-      emissiveIntensity: 0.25,
+      emissive: 0x9333ea,
+      emissiveIntensity: 0.35,
     })
   );
-  disc.position.y = 0.15;
-  group.add(disc);
+  disc.position.y = 0;
+  face.add(disc);
 
-  // まんなかの「黒い穴」
-  const hole = new THREE.Mesh(
-    new THREE.CircleGeometry(1.15, 32),
-    new THREE.MeshBasicMaterial({ color: 0x0b0416 })
-  );
-  hole.rotation.x = -Math.PI / 2;
-  hole.position.y = 0.31;
-  group.add(hole);
-
-  // 吸い込みの光（紫の脈打つリング）
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(1.35, 0.09, 10, 40),
+  // 地面ににじむネオンのハロー
+  const halo = new THREE.Mesh(
+    new THREE.CircleGeometry(2.7, 32),
     new THREE.MeshBasicMaterial({
-      color: 0xa78bfa,
+      map: makeGlowTexture(),
       transparent: true,
-      opacity: 0.8,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
   );
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.35;
-  group.add(ring);
+  halo.rotation.x = -Math.PI / 2;
+  halo.position.y = 0.04;
+  group.add(halo);
+
+  // 渦巻く吸い込み口（テクスチャをゆっくり回転させる）
+  const swirlTex = makeSwirlTexture();
+  const swirl = new THREE.Mesh(
+    new THREE.CircleGeometry(1.45, 32),
+    new THREE.MeshBasicMaterial({ map: swirlTex })
+  );
+  swirl.rotation.x = -Math.PI / 2;
+  swirl.position.y = 0.16;
+  face.add(swirl);
+
+  // 二重のネオンリング（ピンクと紫が交互に吸い込まれるように収縮）
+  const makeRing = (radius, tube, color, y) => {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(radius, tube, 10, 48),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = y;
+    face.add(ring);
+    return ring;
+  };
+  const ring1 = makeRing(1.6, 0.07, 0xff2fb3, 0.24);
+  const ring2 = makeRing(1.25, 0.055, 0x8b5cf6, 0.3);
 
   // ラベル
   const label = makeBinLabel();
-  label.position.y = 1.6;
+  label.position.y = 1.7;
   group.add(label);
 
-  return { group, ring, label, phase: x > 0 ? Math.PI : 0 };
+  return { group, swirlTex, ring1, ring2, label, phase: x > 0 ? Math.PI : 0 };
 }
 
 // タワーを作る。揺らす演出のためレーンごとに Group にまとめて返す
@@ -253,13 +338,18 @@ export function createTowers(scene) {
       p.ring.scale.set(s, s, 1);
     }
     for (const bin of bins) {
-      // 吸い込まれるように縮んで戻るリング
-      const k = 1 - ((time * 0.7 + bin.phase) % 1) * 0.35;
-      bin.ring.scale.set(k, k, 1);
-      bin.ring.material.opacity = 0.3 + 0.5 * k;
-      bin.label.position.y = 1.6 + Math.sin(time * 2 + bin.phase) * 0.12;
+      // 渦がゆっくり回転して吸い込まれそうに見える
+      bin.swirlTex.rotation = -time * 1.6;
+      // 二重のネオンリングが交互に中心へ吸い込まれるように収縮
+      const k1 = 1 - ((time * 0.8 + bin.phase) % 1);
+      bin.ring1.scale.set(0.7 + 0.45 * k1, 0.7 + 0.45 * k1, 1);
+      bin.ring1.material.opacity = 0.15 + 0.65 * k1;
+      const k2 = 1 - ((time * 0.8 + 0.5 + bin.phase) % 1);
+      bin.ring2.scale.set(0.7 + 0.45 * k2, 0.7 + 0.45 * k2, 1);
+      bin.ring2.material.opacity = 0.15 + 0.65 * k2;
+      bin.label.position.y = 1.7 + Math.sin(time * 2 + bin.phase) * 0.12;
     }
   }
 
-  return { towerGroups, tick };
+  return { towerGroups, bins, tick };
 }
