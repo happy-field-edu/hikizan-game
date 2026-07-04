@@ -5,19 +5,19 @@ import { GAUGE_MAX } from './monster.js';
 import * as ui from './ui.js';
 
 // はるか上空では速く落ち、タワーに近づくとゆっくりになる
-const FALL_SPEED_HIGH = 11;
-const FALL_SPEED_LOW = 2.4;
+const FALL_SPEED_HIGH = 8.8;
+const FALL_SPEED_LOW = 1.85;
 const SLOW_DOWN_Y = 16; // この高さから減速し始める
-const SPAWN_DELAY = 0.7;
+const SPAWN_DELAY = 0.95;
 
 // ラッシュタイム: 同じ種類のブロックが連続で素早く降ってくる
-const RUSH_CHANCE = 0.16;
-const RUSH_COUNT = 3;
-const RUSH_SPAWN_DELAY = 0.25;
-const RUSH_SPEED = 1.55;
+const RUSH_CHANCE = 0.09;
+const RUSH_COUNT = 2;
+const RUSH_SPAWN_DELAY = 0.38;
+const RUSH_SPEED = 1.48;
 
-// 合計がターゲットに近づくほど速くなる（最大 +50%）
-const PROGRESS_SPEEDUP = 0.5;
+// 合計がターゲットに近づくほど速くなる（最大 +32%）
+const PROGRESS_SPEEDUP = 0.32;
 
 // 操作スロット: まんなか3つがタワー、両はしは「ゴミ箱（ブラックホール）」
 const SLOTS = [
@@ -50,26 +50,34 @@ const LANE_OF = { 100: 0, 10: 1, 1: 2 };
 const ease = (k) => k * k * (3 - 2 * k);
 
 // タワーの真上に出す「その位の現在値」（例: 十の位に4本なら 40）
-function drawTowerValue(value, colorHex) {
+function drawTowerValue(value, colorHex, label, kana) {
   const canvas = document.createElement('canvas');
-  canvas.width = 320;
-  canvas.height = 160;
+  canvas.width = 384;
+  canvas.height = 224;
   const ctx = canvas.getContext('2d');
   const color = '#' + colorHex.toString(16).padStart(6, '0');
 
-  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
   ctx.strokeStyle = color;
-  ctx.lineWidth = 10;
+  ctx.lineWidth = 12;
   ctx.beginPath();
-  ctx.roundRect(12, 12, 296, 136, 34);
+  ctx.roundRect(16, 18, 352, 188, 34);
   ctx.fill();
   ctx.stroke();
 
-  ctx.font = 'bold 92px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.font = 'bold 30px "Hiragino Maru Gothic ProN", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#475569';
+  ctx.fillText(kana, 192, 44);
+
+  ctx.font = 'bold 38px "Hiragino Maru Gothic ProN", sans-serif';
   ctx.fillStyle = color;
-  ctx.fillText(String(value), 160, 86);
+  ctx.fillText(label, 192, 82);
+
+  ctx.font = 'bold 88px "Hiragino Maru Gothic ProN", sans-serif';
+  ctx.fillStyle = '#0f172a';
+  ctx.fillText(String(value), 192, 148);
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -101,10 +109,10 @@ export class Game {
     // 各タワーの真上の「その位の現在値」表示
     this.towerValues = LANES.map((lane) => {
       const sprite = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: drawTowerValue(0, lane.color) })
+        new THREE.SpriteMaterial({ map: drawTowerValue(0, lane.color, lane.label, lane.kana) })
       );
-      sprite.scale.set(2.7, 1.35, 1);
-      sprite.position.set(lane.x, TOWER_HEIGHT + 1.5, 1.5);
+      sprite.scale.set(3.35, 1.95, 1);
+      sprite.position.set(lane.x, TOWER_HEIGHT + 1.25, 1.65);
       scene.add(sprite);
       return sprite;
     });
@@ -117,7 +125,7 @@ export class Game {
     LANES.forEach((lane, i) => {
       const sprite = this.towerValues[i];
       sprite.material.map?.dispose();
-      sprite.material.map = drawTowerValue(this.counts[lane.value] * lane.value, lane.color);
+      sprite.material.map = drawTowerValue(this.counts[lane.value] * lane.value, lane.color, lane.label, lane.kana);
       sprite.material.needsUpdate = true;
     });
   }
@@ -175,12 +183,12 @@ export class Game {
     return this.digits[v] > 0 && this.counts[v] < this.digits[v] && this.sum + v <= this.target;
   }
 
-  // 重み付き抽選: 必要なブロックが出やすく（無理ゲー防止）、
+  // 重み付き抽選: 必要なブロックがかなり出やすく（無理ゲー防止）、
   // いらないブロック（0の位・もう足りている位）は低確率＆連発をほぼ止める
   pickValue() {
     let total = 0;
     const entries = [100, 10, 1].map((v) => {
-      let w = this.isUseful(v) ? 6 : 1;
+      let w = this.isUseful(v) ? 9 : 0.55;
       if (!this.isUseful(v) && v === this.lastValue && (this.lastRepeat ?? 0) >= 1) w = 0.15;
       total += w;
       return [v, w];
@@ -197,17 +205,17 @@ export class Game {
     let value;
     if (this.rushLeft > 0) {
       value = this.rushType; // ラッシュ中は同じ種類が連続
-    } else if (Math.random() < RUSH_CHANCE) {
+    } else if (this.sum > 0 && this.progress > 0.25 && Math.random() < RUSH_CHANCE) {
       // 50%で「くりあがりミッション」: 1の立方体が大量に降ってくる
       const onesMission = this.digits[1] > 0 && Math.random() < 0.5;
       if (onesMission) {
-        this.rushLeft = 6;
+        this.rushLeft = 4;
         this.rushType = 1;
-        ui.setMessage('⚡ ミッション！「1」ラッシュ！ 10こで くりあがり！ ⚡', 'miss');
+        ui.setMessage('ラッシュ！「1」が つづくよ！', 'miss');
       } else {
         this.rushLeft = RUSH_COUNT;
         this.rushType = this.pickValue();
-        ui.setMessage('⚡ ラッシュタイム！！ ⚡', 'miss');
+        ui.setMessage('ラッシュタイム！ はやいよ！', 'miss');
       }
       value = this.rushType;
       this.monster.setRush(true); // 吹き出しが赤く点滅する

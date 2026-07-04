@@ -6,15 +6,15 @@ import helvetikerBold from 'three/examples/fonts/helvetiker_bold.typeface.json';
 // 3つのレーン（タワー）の定義。左から 百・十・一
 // （100のプレートが入るようタワーは太め・間隔広め）
 export const LANES = [
-  { x: -5.6, value: 100, label: '百', color: 0xf59e0b },
-  { x: 0, value: 10, label: '十', color: 0x10b981 },
-  { x: 5.6, value: 1, label: '一', color: 0x3b82f6 },
+  { x: -5.6, value: 100, label: '百のくらい', kana: 'ひゃく の くらい', color: 0xf59e0b },
+  { x: 0, value: 10, label: '十のくらい', kana: 'じゅう の くらい', color: 0x10b981 },
+  { x: 5.6, value: 1, label: '一のくらい', kana: 'いち の くらい', color: 0x3b82f6 },
 ];
 
 export const TOWER_HEIGHT = 7;
 export const TOWER_RADIUS = 2.5;
 export const SPAWN_Y = 40; // はるか上空から降ってくる
-export const BIN_X = 8.8;  // ゴミ箱の初期位置（±）。画面幅に応じて main.js が端へ再配置する
+export const BIN_X = 11.6; // ゴミ箱の初期位置（±）。画面幅に応じて main.js が端へ再配置する
 export const BIN_Z = 2.5;  // ゴミ箱の奥行き位置
 
 const font = new FontLoader().parse(helvetikerBold);
@@ -93,9 +93,11 @@ function makeBinLabel() {
   ctx.lineWidth = 12;
   ctx.lineJoin = 'round';
   ctx.strokeStyle = '#2e1065';
-  ctx.strokeText('ゴミばこ', 128, 48);
-  ctx.fillStyle = '#e9d5ff';
-  ctx.fillText('ゴミばこ', 128, 48);
+  ctx.strokeText('すてる', 128, 38);
+  ctx.strokeText('ばしょ', 128, 76);
+  ctx.fillStyle = '#f5d0fe';
+  ctx.fillText('すてる', 128, 38);
+  ctx.fillText('ばしょ', 128, 76);
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas) })
   );
@@ -112,27 +114,29 @@ function makeSwirlTexture() {
   // 中心の闇 → 紫 → ネオンピンクのグラデーション
   const grad = ctx.createRadialGradient(128, 128, 6, 128, 128, 128);
   grad.addColorStop(0, '#000000');
-  grad.addColorStop(0.4, '#1e0a3c');
-  grad.addColorStop(0.7, '#7c3aed');
-  grad.addColorStop(0.9, '#d946ef');
-  grad.addColorStop(1, '#ff5fd0');
+  grad.addColorStop(0.24, '#05020c');
+  grad.addColorStop(0.48, '#33106b');
+  grad.addColorStop(0.74, '#7c3aed');
+  grad.addColorStop(0.9, '#e879f9');
+  grad.addColorStop(1, '#22d3ee');
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.arc(128, 128, 128, 0, Math.PI * 2);
   ctx.fill();
 
-  // 渦の腕（明るい筋と暗い筋を3本ずつ）
-  for (let arm = 0; arm < 3; arm++) {
+  // 渦の腕（明るい筋と暗い筋を4本ずつ）
+  for (let arm = 0; arm < 4; arm++) {
     for (const [color, width, offset] of [
-      ['rgba(255,170,255,0.75)', 5, 0],
-      ['rgba(10,0,30,0.6)', 8, 0.55],
+      ['rgba(255,190,255,0.85)', 6, 0],
+      ['rgba(34,211,238,0.55)', 4, 0.25],
+      ['rgba(10,0,30,0.62)', 9, 0.58],
     ]) {
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.beginPath();
       for (let t = 0; t <= 1.001; t += 0.04) {
         const r = 10 + t * 112;
-        const a = arm * ((Math.PI * 2) / 3) + offset + t * Math.PI * 2.2;
+        const a = arm * ((Math.PI * 2) / 4) + offset + t * Math.PI * 2.7;
         const px = 128 + Math.cos(a) * r;
         const py = 128 + Math.sin(a) * r;
         if (t === 0) ctx.moveTo(px, py);
@@ -159,6 +163,32 @@ function makeGlowTexture() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
+}
+
+function createOrbitDust() {
+  const count = 90;
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 1.8 + Math.random() * 1.55;
+    positions[i * 3] = Math.cos(a) * r;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 0.16;
+    positions[i * 3 + 2] = Math.sin(a) * r;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const dust = new THREE.Points(
+    geo,
+    new THREE.PointsMaterial({
+      color: 0xf0abfc,
+      size: 0.075,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+  );
+  return dust;
 }
 
 // ブラックホール風のゴミ箱（不要ブロックを吸い込むシュレッダー）
@@ -228,13 +258,20 @@ function createBin(x) {
   };
   const ring1 = makeRing(1.6, 0.07, 0xff2fb3, 0.24);
   const ring2 = makeRing(1.25, 0.055, 0x8b5cf6, 0.3);
+  const ring3 = makeRing(1.95, 0.045, 0x22d3ee, 0.2);
+  ring3.rotation.z = 0.6;
+
+  const dust = createOrbitDust();
+  dust.position.y = 0.32;
+  face.add(dust);
 
   // ラベル
   const label = makeBinLabel();
+  label.position.x = x < 0 ? 1.05 : -1.05;
   label.position.y = 1.7;
   group.add(label);
 
-  return { group, swirlTex, ring1, ring2, label, phase: x > 0 ? Math.PI : 0 };
+  return { group, swirlTex, ring1, ring2, ring3, dust, label, phase: x > 0 ? Math.PI : 0 };
 }
 
 // タワーを作る。揺らす演出のためレーンごとに Group にまとめて返す
@@ -347,6 +384,10 @@ export function createTowers(scene) {
       const k2 = 1 - ((time * 0.8 + 0.5 + bin.phase) % 1);
       bin.ring2.scale.set(0.7 + 0.45 * k2, 0.7 + 0.45 * k2, 1);
       bin.ring2.material.opacity = 0.15 + 0.65 * k2;
+      bin.ring3.rotation.z = time * 0.7 + bin.phase;
+      bin.ring3.material.opacity = 0.35 + 0.35 * Math.sin(time * 2.4 + bin.phase);
+      bin.dust.rotation.y = -time * 1.9 + bin.phase;
+      bin.dust.rotation.z = Math.sin(time * 1.2 + bin.phase) * 0.25;
       bin.label.position.y = 1.7 + Math.sin(time * 2 + bin.phase) * 0.12;
     }
   }

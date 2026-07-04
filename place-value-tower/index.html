@@ -28,6 +28,7 @@
       padding: 6px 14px 10px;
     }
     #monster-box .label { font-size: 14px; color: #92400e; font-weight: bold; }
+    ruby rt { font-size: 0.55em; font-weight: 800; }
     #monster-box #level { color: #7c3aed; margin-left: 6px; }
     #gauge {
       width: 170px; height: 16px;
@@ -67,6 +68,8 @@
       text-align: center;
       font-size: 15px; color: #64748b; font-weight: bold;
       text-shadow: 0 1px 0 #fff;
+      padding: 0 12px;
+      line-height: 1.45;
     }
 
     #flash {
@@ -80,16 +83,32 @@
       0% { opacity: 1; }
       100% { opacity: 0; }
     }
+
+    @media (min-width: 700px) and (max-width: 1180px) {
+      #monster-box {
+        margin-top: 10px;
+        padding: 7px 14px 10px;
+      }
+      #gauge { width: 180px; }
+      #message {
+        max-width: calc(100vw - 28px);
+        text-align: center;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+      #message.clear { font-size: 32px; }
+      #help { font-size: 14px; }
+    }
   </style>
 </head>
 <body>
   <div id="ui">
     <div id="monster-box">
-      <div class="label">しんかゲージ <span id="level">Lv.1</span></div>
+      <div class="label"><ruby>進化<rt>しんか</rt></ruby>ゲージ <span id="level">Lv.1</span></div>
       <div id="gauge"><div id="gauge-fill"></div></div>
     </div>
     <div id="message"></div>
-    <div id="help">←→キー か ドラッグで うごかそう ／ いらないブロックは りょうはしの ゴミばこへ</div>
+    <div id="help">ドラッグで うごかそう ／ いらないブロックは りょうはしの「すてる ばしょ」へ</div>
   </div>
   <div id="flash"></div>
   <script type="module" src="/src/main.js"></script>

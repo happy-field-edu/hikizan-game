@@ -13,9 +13,11 @@ const POPUP_TIME = 2.6;
 const GROWTH_MAX = 0.45;
 const MEGA_FACTOR = 1.35;
 
-// 吹き出し・ゲージの見た目サイズ（ワールド座標で一定に保つ）
-const BUBBLE_W = 8.06, BUBBLE_H = 4.55, BUBBLE_Y = 4.68;
-const FULLNESS_W = 7.4, FULLNESS_H = 3.47, FULLNESS_Y = -4.15;
+// 吹き出しの見た目サイズ（ワールド座標で一定に保つ）
+const BUBBLE_W = 9.05, BUBBLE_H = 5.1;
+const FULLNESS_W = 8.35, FULLNESS_H = 3.92;
+const TARGET_BUBBLE_X = 5.05, TARGET_BUBBLE_Y = 3.15;
+const FULLNESS_BUBBLE_X = -5.05, FULLNESS_BUBBLE_Y = 1.65;
 
 // ゴムのように「ボヨヨン！」と弾むイージング
 function elasticOut(k) {
@@ -266,16 +268,16 @@ export class Monster {
     this.bubble = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: drawBubble(0) })
     );
-    this.bubble.scale.set(6.2, 3.5, 1);
-    this.bubble.position.y = 3.6;
+    this.bubble.scale.set(BUBBLE_W, BUBBLE_H, 1);
+    this.bubble.position.set(TARGET_BUBBLE_X, TARGET_BUBBLE_Y, 0);
     this.group.add(this.bubble);
 
-    // まんぷくゲージ（モンスターのすぐ下）
+    // 今の合計（モンスターの左側）
     this.fullness = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: drawFullness(0, 100) })
     );
     this.fullness.scale.set(FULLNESS_W, FULLNESS_H, 1);
-    this.fullness.position.y = FULLNESS_Y;
+    this.fullness.position.set(FULLNESS_BUBBLE_X, FULLNESS_BUBBLE_Y, 0);
     this.group.add(this.fullness);
   }
 
@@ -517,13 +519,12 @@ export class Monster {
       }
     }
 
-    // 吹き出しとゲージは、モンスターが大きくなっても見た目サイズ一定に保つ
-    // （吹き出しは頭にかぶらないよう、体の大きさぶんだけ上へ）
+    // 吹き出しは、モンスターが大きくなっても見た目サイズと左右の位置を一定に保つ
     const inv = 1 / this.group.scale.x;
     this.bubble.scale.set(BUBBLE_W * inv, BUBBLE_H * inv, 1);
-    this.bubble.position.y = 1.5 + 3.4 * inv;
+    this.bubble.position.set(TARGET_BUBBLE_X * inv, TARGET_BUBBLE_Y * inv, 0);
     this.fullness.scale.set(FULLNESS_W * inv, FULLNESS_H * inv, 1);
-    this.fullness.position.y = FULLNESS_Y * inv;
+    this.fullness.position.set(FULLNESS_BUBBLE_X * inv, FULLNESS_BUBBLE_Y * inv, 0);
 
     // セリフの表示時間が終わったらターゲット表示に戻す
     if (this.sayTimer > 0) {

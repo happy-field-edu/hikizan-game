@@ -46,7 +46,7 @@ const game = new Game(scene, effects, monster);
 function layoutBins() {
   const dist = cameraBase.z - BIN_Z;
   const halfW = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist * camera.aspect;
-  const binX = Math.min(13, Math.max(8.6, halfW - 2.1));
+  const binX = Math.min(14.2, Math.max(10.8, halfW - 1.05));
   bins[0].group.position.x = -binX;
   bins[1].group.position.x = binX;
   setBinsX(binX);
