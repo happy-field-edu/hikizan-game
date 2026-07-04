@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>くらいどりタワー</title>
+  <style>
+    :root {
+      --c-hundreds: #f59e0b;
+      --c-tens: #10b981;
+      --c-ones: #3b82f6;
+      --font: "Hiragino Maru Gothic ProN", "BIZ UDGothic", "Rounded Mplus 1c", sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; font-family: var(--font); user-select: none; -webkit-user-select: none; }
+    canvas { display: block; touch-action: none; }
+
+    #ui {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      display: flex; flex-direction: column; align-items: flex-start;
+      padding-left: 14px;
+    }
+    #monster-box {
+      margin-top: 12px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 14px;
+      padding: 6px 14px 10px;
+    }
+    #monster-box .label { font-size: 14px; color: #92400e; font-weight: bold; }
+    #monster-box #level { color: #7c3aed; margin-left: 6px; }
+    #gauge {
+      width: 170px; height: 16px;
+      margin-top: 4px;
+      background: #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #gauge-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #fbbf24, #f97316);
+      border-radius: 8px;
+      transition: width 0.6s ease;
+    }
+
+    #message {
+      align-self: center;
+      margin-top: 10px;
+      font-size: 26px; font-weight: bold;
+      color: #475569;
+      text-shadow: 0 1px 0 #fff;
+      min-height: 36px;
+      transition: transform 0.15s;
+    }
+    #message.good  { color: #059669; }
+    #message.miss  { color: #dc2626; }
+    #message.clear { color: #d97706; font-size: 38px; }
+    #message.pop { animation: pop 0.35s; }
+    @keyframes pop {
+      0% { transform: scale(0.5); }
+      60% { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    #help {
+      position: fixed; bottom: 10px; left: 0; right: 0;
+      text-align: center;
+      font-size: 15px; color: #64748b; font-weight: bold;
+      text-shadow: 0 1px 0 #fff;
+    }
+
+    #flash {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(255,0,0,0.25), rgba(255,0,0,0.55));
+      opacity: 0;
+    }
+    #flash.on { animation: flash 0.45s ease-out; }
+    @keyframes flash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div id="monster-box">
+      <div class="label">しんかゲージ <span id="level">Lv.1</span></div>
+      <div id="gauge"><div id="gauge-fill"></div></div>
+    </div>
+    <div id="message"></div>
+    <div id="help">←→キー か ドラッグで うごかそう ／ いらないブロックは りょうはしの ゴミばこへ</div>
+  </div>
+  <div id="flash"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

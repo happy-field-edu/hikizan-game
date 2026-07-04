@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kanjimon",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8744", "--directory", "/Users/koukichi/Claude_Projects/kanjimon"],
+      "port": 8744
+    },
+    {
+      "name": "kanjimon-3d",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/koukichi/Claude_Projects/kanjimon-3d", "--", "--port", "5173", "--strictPort"],
+      "port": 5173
+    },
+    {
+      "name": "place-value-tower",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/koukichi/Claude_Projects/Subtraction_Game_1st/place-value-tower", "--", "--port", "5174", "--strictPort"],
+      "port": 5174
+    }
+  ]
+}

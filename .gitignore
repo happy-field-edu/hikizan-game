@@ -16,3 +16,15 @@ desktop.ini
 # 一時ファイル
 *.tmp
 *.bak
+
+# Node
+node_modules/
+dist/
+
+# 環境変数（秘密情報）
+.env
+.env.*
+!.env.example
+
+# Claude Code ローカル設定
+.claude/settings.local.json
