@@ -49,39 +49,6 @@ const LANE_OF = { 100: 0, 10: 1, 1: 2 };
 
 const ease = (k) => k * k * (3 - 2 * k);
 
-// タワーの真上に出す「その位の現在値」（例: 十の位に4本なら 40）
-function drawTowerValue(value, colorHex, label, kana) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 384;
-  canvas.height = 224;
-  const ctx = canvas.getContext('2d');
-  const color = '#' + colorHex.toString(16).padStart(6, '0');
-
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 12;
-  ctx.beginPath();
-  ctx.roundRect(16, 18, 352, 188, 34);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.font = 'bold 30px "Hiragino Maru Gothic ProN", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#475569';
-  ctx.fillText(kana, 192, 44);
-
-  ctx.font = 'bold 38px "Hiragino Maru Gothic ProN", sans-serif';
-  ctx.fillStyle = color;
-  ctx.fillText(label, 192, 82);
-
-  ctx.font = 'bold 88px "Hiragino Maru Gothic ProN", sans-serif';
-  ctx.fillStyle = '#0f172a';
-  ctx.fillText(String(value), 192, 148);
-
-  return new THREE.CanvasTexture(canvas);
-}
-
 // タワー内での積み上げ位置。1の立方体は「5こずつ2列」で最大10こ入る
 function stackTransform(value, idx, laneX) {
   if (value === 100) return { pos: [laneX, 0.42 + idx * 0.42, 0], rotZ: 0 };
@@ -106,28 +73,11 @@ export class Game {
     this.rushLeft = 0;          // 残りのラッシュブロック数
     this.rushType = 1;
 
-    // 各タワーの真上の「その位の現在値」表示
-    this.towerValues = LANES.map((lane) => {
-      const sprite = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: drawTowerValue(0, lane.color, lane.label, lane.kana) })
-      );
-      sprite.scale.set(3.35, 1.95, 1);
-      sprite.position.set(lane.x, TOWER_HEIGHT + 1.25, 1.65);
-      scene.add(sprite);
-      return sprite;
-    });
-
     this.newProblem();
   }
 
-  // タワー上の現在値表示を更新（例: 十の位に4本 → 40）
+  // 現在値はモンスター左側の「いまの ごうけい」吹き出しで表示する
   updateTowerValues() {
-    LANES.forEach((lane, i) => {
-      const sprite = this.towerValues[i];
-      sprite.material.map?.dispose();
-      sprite.material.map = drawTowerValue(this.counts[lane.value] * lane.value, lane.color, lane.label, lane.kana);
-      sprite.material.needsUpdate = true;
-    });
   }
 
   // いまの合計（タワー内の物理ブロック数から計算。繰り上がりでも不変）
