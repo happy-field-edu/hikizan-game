@@ -2,7 +2,10 @@ import * as THREE from 'three';
 import { LANES, TOWER_HEIGHT, SPAWN_Y, BIN_X } from './towers.js';
 import { createBlock, removeBlock } from './blocks.js';
 import { GAUGE_MAX } from './monster.js';
+import { Quiz } from './quiz.js';
 import * as ui from './ui.js';
+
+const QUIZ_EVERY = 2; // 何回クリアするごとにクイズタイムを出すか
 
 // はるか上空では速く落ち、タワーに近づくとゆっくりになる
 const FALL_SPEED_HIGH = 8.8;
@@ -72,6 +75,8 @@ export class Game {
     this.timer = 0.8;
     this.rushLeft = 0;          // 残りのラッシュブロック数
     this.rushType = 1;
+    this.quiz = new Quiz();     // テスト形式のボーナスクイズ
+    this.clearCount = 0;
 
     this.newProblem();
   }
@@ -434,6 +439,7 @@ export class Game {
   // 満腹度が上がる（満タンでレベルアップ・進化）
   clear() {
     this.status = 'clear';
+    this.clearCount += 1;
     this.monster.setRush(false);
     this.monster.megaGrow(); // ドーン！と巨大化（次の問題で初期サイズに戻る）
     ui.setMessage('🎉 パシャーン！ だいせいこう！ 🎉', 'clear');
@@ -463,6 +469,36 @@ export class Game {
       }
     }, 1900);
 
-    setTimeout(() => this.newProblem(), 6200);
+    // ときどきテスト形式のクイズタイムをはさむ
+    setTimeout(() => {
+      if (this.clearCount % QUIZ_EVERY === 0) this.startQuiz();
+      else this.newProblem();
+    }, 6200);
+  }
+
+  // クイズタイム: テストと同じ形式の問題（10のあつまり・数直線・大小くらべ）。
+  // 正解するとモンスターのごはん（しんかゲージ+1）になる
+  startQuiz() {
+    this.status = 'quiz';
+    ui.setMessage('✏️ クイズタイム！', 'clear');
+    this.quiz.show((correct) => {
+      if (correct) {
+        this.effects.starBurst();
+        this.monster.happy();
+        const evolved = this.monster.feed();
+        ui.setGauge(this.monster.gauge, GAUGE_MAX);
+        ui.setLevel(this.monster.level);
+        if (evolved) {
+          this.effects.starBurst(this.monster.group.position.clone(), 140);
+          ui.setMessage('✨ レベルアップ！ しんか！ ✨', 'clear');
+        } else {
+          ui.setMessage('クイズ せいかい！ ごちそうさま！', 'clear');
+        }
+      } else {
+        this.monster.say('つぎは できるよ！');
+        ui.setMessage('おしい！ つぎ がんばろう！', 'miss');
+      }
+      setTimeout(() => this.newProblem(), correct ? 2600 : 1600);
+    });
   }
 }
