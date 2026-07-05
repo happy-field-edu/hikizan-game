@@ -161,6 +161,85 @@
       100% { opacity: 0; }
     }
 
+    /* タイトル画面 */
+    #title {
+      position: fixed; inset: 0;
+      z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(180deg, #6fc3f0 0%, #bfe7fb 55%, #7fc95e 55%, #5da944 100%);
+    }
+    #title.hidden { display: none; }
+    #title-board {
+      position: relative;
+      width: min(100vw, calc(100vh * 1.5059));
+      aspect-ratio: 2400 / 1594;
+      background: url('title.jpg') center / cover no-repeat;
+    }
+    .title-hotspot {
+      position: absolute;
+      background: transparent;
+      border: none;
+      border-radius: 28px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .title-hotspot:hover, .title-hotspot:active {
+      box-shadow: 0 0 0 5px rgba(255,255,255,0.9), 0 0 30px rgba(255,200,0,0.9);
+    }
+    #btn-start {
+      left: 32.5%; top: 84%; width: 30.5%; height: 12.5%;
+      animation: start-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes start-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+      50% { box-shadow: 0 0 0 6px rgba(255,255,255,0.75), 0 0 26px rgba(255,200,0,0.7); }
+    }
+    #btn-howto { left: 73%; top: 83.5%; width: 9.6%; height: 14%; }
+    #btn-settings { left: 82.3%; top: 83.5%; width: 9.8%; height: 14%; }
+
+    .title-panel {
+      display: none;
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      background: #fffef8;
+      border: 6px solid #fbbf24;
+      border-radius: 26px;
+      padding: 20px 28px;
+      width: min(88vw, 560px);
+      max-height: 84vh;
+      overflow-y: auto;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .title-panel.shown { display: block; }
+    .title-panel h2 { font-size: 26px; color: #d97706; text-align: center; margin-bottom: 10px; }
+    .title-panel ol { font-size: 19px; font-weight: bold; color: #334155; line-height: 1.7; padding-left: 26px; }
+    .title-panel .panel-close {
+      display: block;
+      font-family: var(--font);
+      font-size: 22px; font-weight: bold;
+      color: #fff;
+      background: linear-gradient(180deg, #34d399, #059669);
+      border: none; border-radius: 16px;
+      padding: 10px 36px;
+      margin: 14px auto 0;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #047857;
+    }
+    #save-info { font-size: 20px; font-weight: bold; color: #334155; text-align: center; margin: 6px 0 12px; }
+    #btn-reset-save {
+      display: block;
+      font-family: var(--font);
+      font-size: 19px; font-weight: bold;
+      color: #fff;
+      background: linear-gradient(180deg, #f87171, #dc2626);
+      border: none; border-radius: 16px;
+      padding: 10px 24px;
+      margin: 0 auto;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #991b1b;
+    }
+
     @media (min-width: 700px) and (max-width: 1180px) {
       #monster-box {
         margin-top: 10px;
@@ -188,6 +267,32 @@
     <div id="help">ドラッグで うごかそう ／ いらないブロックは りょうはしの「すてる ばしょ」へ</div>
   </div>
   <div id="flash"></div>
+  <div id="title">
+    <div id="title-board">
+      <button id="btn-start" class="title-hotspot" aria-label="スタート"></button>
+      <button id="btn-howto" class="title-hotspot" aria-label="あそびかた"></button>
+      <button id="btn-settings" class="title-hotspot" aria-label="せってい"></button>
+    </div>
+    <div id="howto-panel" class="title-panel">
+      <h2>📖 あそびかた</h2>
+      <ol>
+        <li>モンスターの「ほしいパワー」と おなじ かずを つくろう！</li>
+        <li>そらから おちてくる ブロックを ←→キーか ドラッグで うごかそう</li>
+        <li>100は 100のタワー、10は 10のタワー、1は 1のタワーへ！</li>
+        <li>いらない ブロックは りょうはしの ブラックホールに ポイッ！</li>
+        <li>1が 10こ たまると…ガッチャンコ！ 10に へんしん！</li>
+        <li>いれすぎると モンスターが めを まわすよ。ぴったりを ねらおう！</li>
+        <li>2かい クリアごとに クイズタイム！ せいかいで モンスターの ごはんに！</li>
+      </ol>
+      <button class="panel-close">とじる</button>
+    </div>
+    <div id="settings-panel" class="title-panel">
+      <h2>⚙️ せってい</h2>
+      <div id="save-info"></div>
+      <button id="btn-reset-save">モンスターを さいしょから そだてなおす</button>
+      <button class="panel-close">とじる</button>
+    </div>
+  </div>
   <div id="quiz">
     <div id="quiz-panel">
       <div id="quiz-title">✏️ クイズタイム！</div>

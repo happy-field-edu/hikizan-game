@@ -55,6 +55,42 @@ layoutBins();
 window.__game = game; // デバッグ・動作確認用
 window.__fx = effects;
 window.__monster = monster;
+
+// --- タイトル画面: スタートを押すまでゲームは始まらない ---
+game.status = 'title';
+const titleEl = document.getElementById('title');
+const howtoPanel = document.getElementById('howto-panel');
+const settingsPanel = document.getElementById('settings-panel');
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  titleEl.classList.add('hidden');
+  howtoPanel.classList.remove('shown');
+  settingsPanel.classList.remove('shown');
+  game.status = 'playing';
+  game.timer = 0.8;
+});
+
+document.getElementById('btn-howto').addEventListener('click', () => {
+  settingsPanel.classList.remove('shown');
+  howtoPanel.classList.add('shown');
+});
+
+document.getElementById('btn-settings').addEventListener('click', () => {
+  howtoPanel.classList.remove('shown');
+  document.getElementById('save-info').textContent =
+    `いまの モンスター: Lv.${monster.level}（しんかゲージ ${monster.gauge}/3）`;
+  settingsPanel.classList.add('shown');
+});
+
+for (const btn of document.querySelectorAll('.title-panel .panel-close')) {
+  btn.addEventListener('click', () => btn.closest('.title-panel').classList.remove('shown'));
+}
+
+document.getElementById('btn-reset-save').addEventListener('click', () => {
+  if (!window.confirm('ほんとうに モンスターを さいしょから そだてなおす？')) return;
+  localStorage.removeItem('pvt-monster');
+  window.location.reload();
+});
 window.__render = () => renderer.render(scene, camera); // rAF停止中でも描画確認できるように
 
 // --- 操作: 左右矢印キー ---
